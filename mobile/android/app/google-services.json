@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "18987783655",
+    "project_id": "travelapp-ddbea",
+    "storage_bucket": "travelapp-ddbea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:18987783655:android:806e7f28ead408a076d942",
+        "android_client_info": {
+          "package_name": "com.travelapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCySVPjdLvIB4bNewTLcDEkLK2v6QGNZM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
