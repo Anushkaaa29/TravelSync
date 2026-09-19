@@ -1,0 +1,21 @@
+{
+  "name": "travel-booking-app",
+  "version": "1.0.0",
+  "description": "This project is a comprehensive guide to building a full-stack Travel Booking Application using the MERN stack (MongoDB, Express.js, React, Node.js) with TypeScript.",
+  "main": "index.js",
+  "scripts": {
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.1.0"
+  }
+}
