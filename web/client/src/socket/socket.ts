@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:5000";
+const SOCKET_URL = "https://travelsync-backend-zcoj.onrender.com";
 
 export const createSocket = (token: string) => {
   const socket = io(SOCKET_URL, {
