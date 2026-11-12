@@ -218,22 +218,43 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
-export const saveFCMToken=async(req:any,res:Response)=>{
-  try{
-     console.log("START SAVE TOKEN");
-    const {fcmToken}=req.body;
-    await User.findByIdAndUpdate(req.user.id,{
-      fcmToken,
+export const saveFCMToken = async (req: any, res: Response) => {
+  try {
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
+      return res.status(400).json({
+        success: false,
+        message: "FCM token is required",
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { fcmToken },
+      { new: true },
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "FCM token saved successfully",
     });
-    res.status(200).json({
-      success:true,
-      data:"Notification Updated Success",
-    })
-   console.log("TOKEN SAVED");
-  }catch{
-         console.log("error occurs")
+  } catch (error) {
+    console.error("FCM Token Save Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save FCM token",
+    });
   }
-}
+};
 
 export const logout= async(req:any,res:Response)=>{
   try{
