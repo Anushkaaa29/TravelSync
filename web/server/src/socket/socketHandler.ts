@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import onlineUsers from "./onlineUser";
 import { chatEvents } from "./chatEvents";
 import { Server } from "socket.io";
+import { chatEvents, broadcastActiveUsers } from "./chatEvents";
 
 export const registerSocketEvents = (io: Server) => {
   io.use((socket: any, next) => {
@@ -31,12 +32,15 @@ export const registerSocketEvents = (io: Server) => {
       socketId: socket.id,
       role: user.role,
     });
+    chatEvents(socket, io);
+broadcastActiveUsers(io);  
     console.log(" ONLINE USERS:");
     console.log([...onlineUsers.entries()]);
     chatEvents(socket, io);
     socket.on("disconnect", () => {
       console.log(" USER DISCONNECTED:", user.id);
       onlineUsers.delete(user.id);
+broadcastActiveUsers(io);
       console.log("AFTER DISCONNECT:");
       console.log([...onlineUsers.entries()]);
     });
