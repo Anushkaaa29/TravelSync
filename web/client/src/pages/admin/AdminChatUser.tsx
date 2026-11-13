@@ -127,7 +127,7 @@ const AdminChatUser = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/chat/messages/${userId}`,
+        `https://travelsync-backend-zcoj.onrender.com/api/chat/messages/${userId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -150,7 +150,7 @@ const AdminChatUser = () => {
       if (isEditing) {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `http://localhost:5000/api/chat/edit/${isEditing._id}`,
+          `https://travelsync-backend-zcoj.onrender.com/api/chat/edit/${isEditing._id}`,
           {
             method: "PUT",
             headers: {
@@ -173,7 +173,7 @@ const AdminChatUser = () => {
       }
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/chat/send-message`,
+        `https://travelsync-backend-zcoj.onrender.com/api/chat/send-message`,
         {
           method: "POST",
           headers: {
@@ -203,7 +203,7 @@ const AdminChatUser = () => {
   }, []);
   const loadUsers = async () => {
     const token = localStorage.getItem("token");
-    const response = await fetch(`http://localhost:5000/api/chat/users`, {
+    const response = await fetch(`https://travelsync-backend-zcoj.onrender.com/api/chat/users`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -226,7 +226,7 @@ const AdminChatUser = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/chat/delete/${messageId}`,
+        `https://travelsync-backend-zcoj.onrender.com/api/chat/delete/${messageId}`,
         {
           method: "DELETE",
           headers: {
@@ -492,7 +492,7 @@ const AdminChatUser = () => {
                   const token = localStorage.getItem("token");
                   if (selectedMsg?.isPinned) {
                     await fetch(
-                      `http://localhost:5000/api/chat/unpin/${deleteMenu.messageId}`,
+                      `https://travelsync-backend-zcoj.onrender.com/api/chat/unpin/${deleteMenu.messageId}`,
                       {
                         method: "PUT",
                         headers: {
@@ -510,7 +510,7 @@ const AdminChatUser = () => {
                     );
                   } else {
                     await fetch(
-                      `http://localhost:5000/api/chat/pin/${deleteMenu.messageId}`,
+                      `https://travelsync-backend-zcoj.onrender.com/api/chat/pin/${deleteMenu.messageId}`,
                       {
                         method: "PUT",
                         headers: {
