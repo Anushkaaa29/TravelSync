@@ -1,13 +1,9 @@
 import { io, Socket } from "socket.io-client";
-
-<<<<<<< HEAD
 const SOCKET_URL = "https://travelsync-backend-zcoj.onrender.com";
-=======
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
   import.meta.env.VITE_BACKEND_URL ||
   "https://travelsync-backend-zcoj.onrender.com";
->>>>>>> ccbe19e (Fix online users tracking in chat)
 
 let socket: Socket | null = null;
 
@@ -45,9 +41,6 @@ export const createSocket = (token: string): Socket => {
 
   return socket;
 };
-<<<<<<< HEAD
-=======
-
 export const getSocket = (): Socket | null => socket;
 
 export const disconnectSocket = () => {
@@ -57,4 +50,4 @@ export const disconnectSocket = () => {
     socket = null;
   }
 };
->>>>>>> ccbe19e (Fix online users tracking in chat)
+
