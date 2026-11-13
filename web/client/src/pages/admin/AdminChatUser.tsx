@@ -242,7 +242,6 @@ const AdminChatUser = () => {
     loadUsers();
   }, []);
   const loadUsers = async () => {
-<<<<<<< HEAD
     const token = localStorage.getItem("token");
     const response = await fetch(`https://travelsync-backend-zcoj.onrender.com/api/chat/users`, {
       headers: {
@@ -258,7 +257,6 @@ const AdminChatUser = () => {
       prev.forEach((u: any) => userMap.set(u.userId, { ...u }));
       return Array.from(userMap.values());
     });
-=======
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`https://travelsync-backend-zcoj.onrender.com/api/chat/users`, {
