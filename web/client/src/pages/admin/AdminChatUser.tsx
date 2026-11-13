@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createSocket } from "../../socket/socket";
 import { Pin, PinOff } from "lucide-react";
 
@@ -16,7 +16,20 @@ const AdminChatUser = () => {
   const [replyMessage, setReplyMessage] = useState<any>(null);
   const [pinnedMessage, setPinnedMessage] = useState<any>(null);
 
-  //socket connection
+  // Safe admin ID extraction
+  const getAdminId = () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.id || payload._id || null;
+    } catch {
+      return null;
+    }
+  };
+  const adminId = getAdminId();
+
+  // Socket connection and real-time listeners
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -35,6 +48,7 @@ const AdminChatUser = () => {
       console.log("ACTIVE USERS RECEIVED:", onlineUsers);
       setActiveUsers((prev) => {
         const userMap = new Map();
+
         // 1. Mark existing known users as offline first
         prev.forEach((u) => {
           if (u.userId) {
@@ -42,7 +56,7 @@ const AdminChatUser = () => {
           }
         });
 
-        // 2. Mark users present in onlineUsers as online and merge details (name, email, role)
+        // 2. Mark users present in onlineUsers as online and merge details
         if (Array.isArray(onlineUsers)) {
           onlineUsers.forEach((u: any) => {
             if (u.userId) {
@@ -156,13 +170,13 @@ const AdminChatUser = () => {
     };
   }, []);
 
-  // load chat
+  // Load chat when user is selected
   useEffect(() => {
     if (selectedUser?.userId) {
       loadMessages(selectedUser.userId);
     }
   }, [selectedUser]);
-  //load messages
+
   const loadMessages = async (userId: string) => {
     try {
       const token = localStorage.getItem("token");
@@ -175,7 +189,6 @@ const AdminChatUser = () => {
         },
       );
       const data = await response.json();
-      console.log("OLD MESSAGES:", data);
       setMessages(data);
       const pinned = data.find((m: any) => m.isPinned);
       setPinnedMessage(pinned || null);
@@ -197,9 +210,7 @@ const AdminChatUser = () => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({
-              message,
-            }),
+            body: JSON.stringify({ message }),
           },
         );
         const data = await response.json();
@@ -212,7 +223,7 @@ const AdminChatUser = () => {
         return;
       }
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      await fetch(
         `https://travelsync-backend-zcoj.onrender.com/api/chat/send-message`,
         {
           method: "POST",
@@ -227,10 +238,6 @@ const AdminChatUser = () => {
           }),
         },
       );
-      const responseData = await response.json();
-      console.log("SEND MESSAGE RESPONSE");
-      console.log(responseData);
-      // setMessages((prev) => [...prev, responseData.data]);
       setMessage("");
       setReplyMessage(null);
     } catch (error) {
@@ -241,82 +248,35 @@ const AdminChatUser = () => {
   useEffect(() => {
     loadUsers();
   }, []);
+
   const loadUsers = async () => {
-  try {
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(
-      "https://travelsync-backend-zcoj.onrender.com/api/chat/users",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch users");
-    }
-
-    const data = await response.json();
-
-    setActiveUsers((prev: any[]) => {
-      const prevMap = new Map(
-        prev.map((u) => [u.userId, u]),
-      );
-
-      const userMap = new Map();
-
-      if (Array.isArray(data)) {
-        data.forEach((u: any) => {
-          const prevUser: any = prevMap.get(u.userId);
-
-          userMap.set(u.userId, {
-            ...u,
-            isOnline: prevUser?.isOnline || false,
-          });
-        });
-      }
-
-      prev.forEach((u: any) => {
-        if (u.userId && !userMap.has(u.userId)) {
-          userMap.set(u.userId, u);
-        }
-      });
-
-      return Array.from(userMap.values());
-    });
-  } catch (error) {
-    console.error("Failed to load users:", error);
-  }
-};
-    const data = await response.json();
-    setActiveUsers((prev: any[]) => {
-      const userMap = new Map();
-      data.forEach((u: any) =>
-        userMap.set(u.userId, { ...u, isOnline: false }),
-      );
-      prev.forEach((u: any) => userMap.set(u.userId, { ...u }));
-      return Array.from(userMap.values());
-    });
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://travelsync-backend-zcoj.onrender.com/api/chat/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        "https://travelsync-backend-zcoj.onrender.com/api/chat/users",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+
       const data = await response.json();
+
       setActiveUsers((prev: any[]) => {
         const prevMap = new Map(prev.map((u) => [u.userId, u]));
         const userMap = new Map();
 
         if (Array.isArray(data)) {
           data.forEach((u: any) => {
-            const prevUser = prevMap.get(u.userId);
+            const prevUser: any = prevMap.get(u.userId);
             userMap.set(u.userId, {
               ...u,
-              isOnline: prevUser ? prevUser.isOnline : false,
+              isOnline: prevUser?.isOnline || false,
             });
           });
         }
@@ -341,7 +301,7 @@ const AdminChatUser = () => {
   ) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      await fetch(
         `https://travelsync-backend-zcoj.onrender.com/api/chat/delete/${messageId}`,
         {
           method: "DELETE",
@@ -352,29 +312,11 @@ const AdminChatUser = () => {
           body: JSON.stringify({ deleteType }),
         },
       );
-      const data = await response.json();
-      setMessages((prev) => {
-        console.log("Before:", prev.length);
-        const updated = prev.filter((msg) => msg._id !== messageId);
-        console.log("After:", updated.length);
-        console.log(updated);
-        return updated;
-      });
-      console.log(data);
+      setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
     } catch (error) {
       console.log(error);
     }
   };
-  useEffect(() => {
-    console.log(
-      "Messages state:",
-      messages.map((m) => m._id),
-    );
-  }, [messages]);
-
-  const adminId = JSON.parse(
-    atob(localStorage.getItem("token")!.split(".")[1]),
-  ).id;
 
   const selectedMsg = messages.find((m: any) => m._id === deleteMenu.messageId);
 
@@ -403,6 +345,7 @@ const AdminChatUser = () => {
     });
   };
 
+  // Sort online users to the top
   const sortedUsers = [...activeUsers].sort((a, b) => {
     if (Boolean(a.isOnline) === Boolean(b.isOnline)) {
       return (a.name || a.email || "").localeCompare(b.name || b.email || "");
@@ -413,6 +356,7 @@ const AdminChatUser = () => {
   return (
     <div className="h-[calc(100vh-80px)] bg-gray-100 p-6">
       <div className="h-full rounded-2xl overflow-hidden shadow-lg bg-white flex">
+        {/* Sidebar */}
         <div className="w-80 bg-gray-50 p-5 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold">Conversations</h2>
@@ -428,7 +372,6 @@ const AdminChatUser = () => {
                 <div
                   key={user.userId}
                   onClick={() => {
-                    console.log("USER CLICKED", user);
                     setSelectedUser(user);
                     loadMessages(user.userId);
                   }}
@@ -477,6 +420,8 @@ const AdminChatUser = () => {
             )}
           </div>
         </div>
+
+        {/* Chat Area */}
         <div className="flex-1 flex flex-col">
           <div className="border-b p-5">
             {selectedUser ? (
@@ -512,9 +457,10 @@ const AdminChatUser = () => {
                 </div>
               </div>
             ) : (
-              <h2 className="text-gray-500 font-medium">Select User to Chat</h2>
+              <h2 className="text-gray-500 font-medium">Select a user to start conversation</h2>
             )}
           </div>
+
           {pinnedMessage && (
             <div className="flex items-center gap-2 bg-blue-50 border-b border-blue-200 px-5 py-3">
               <Pin size={18} className="text-blue-600" />
@@ -526,6 +472,7 @@ const AdminChatUser = () => {
               </div>
             </div>
           )}
+
           <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500">No Messages Yet</div>
@@ -537,10 +484,9 @@ const AdminChatUser = () => {
                   new Date(previousMessage.createdAt).toDateString() !==
                     new Date(msg.createdAt).toDateString();
                 const isAdmin = msg.receiverId === selectedUser?.userId;
-                console.log("Rendering:", msg._id);
 
                 return (
-                  <>
+                  <React.Fragment key={msg._id || index}>
                     {showDate && (
                       <div className="flex justify-center my-4">
                         <span className="bg-gray-300 text-gray-700 text-xs px-3 py-1 rounded-full">
@@ -549,7 +495,6 @@ const AdminChatUser = () => {
                       </div>
                     )}
                     <div
-                      key={msg._id}
                       className={`flex mb-4 ${
                         isAdmin ? "justify-end" : "justify-start"
                       }`}
@@ -578,7 +523,6 @@ const AdminChatUser = () => {
                             }`}
                           >
                             <p className="text-xs opacity-80">Replying to</p>
-
                             <p className="text-sm">{msg.replyTo.message}</p>
                           </div>
                         )}
@@ -588,43 +532,66 @@ const AdminChatUser = () => {
                             Edited
                           </p>
                         )}
+                        <div
+                          className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
+                            isAdmin ? "text-blue-200" : "text-gray-400"
+                          }`}
+                        >
+                          <span>
+                            {new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          {msg.isPinned && <Pin size={10} />}
+                        </div>
                       </div>
                     </div>
-                  </>
+                  </React.Fragment>
                 );
               })
             )}
           </div>
+
           {replyMessage && (
             <div className="border-t bg-gray-200 p-3">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-blue-300 font-semibold text-sm">
+                  <p className="text-blue-500 font-semibold text-sm">
                     Replying To:
                   </p>
                   <p className="text-sm">{replyMessage.message}</p>
                 </div>
-
                 <button onClick={() => setReplyMessage(null)}>✕</button>
               </div>
             </div>
           )}
+
           <div className="border-t p-4 flex gap-3">
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
               placeholder="Type message..."
-              className="flex-1 border rounded-lg px-4 py-2"
+              className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={handleSendMessage}
-              className="bg-blue-600 text-white px-6 rounded-lg"
+              disabled={!message.trim() || !selectedUser}
+              className="bg-blue-600 text-white px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
             >
-              Send
+              {isEditing ? "Update" : "Send"}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Context Menu Modal */}
       {deleteMenu.visible && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
           <div className="bg-white rounded-lg p-4 w-64 shadow-lg">
@@ -639,62 +606,41 @@ const AdminChatUser = () => {
 
               return (
                 <button
-                  className="w-full text-left p-2 hover:bg-blue-300"
+                  className="w-full text-left p-2 hover:bg-blue-100 rounded-lg text-sm"
                   onClick={() => {
                     setIsEditing(msg);
                     setMessage(msg.message);
                     setDeleteMenu({ visible: false, messageId: "" });
                   }}
                 >
-                  Edit
+                  Edit Message
                 </button>
               );
             })()}
             <button
-              className="w-full flex items-center gap-2 text-left p-2 hover:bg-gray-100"
+              className="w-full flex items-center gap-2 text-left p-2 hover:bg-gray-100 rounded-lg text-sm"
               onClick={async () => {
                 try {
                   const token = localStorage.getItem("token");
-                  if (selectedMsg?.isPinned) {
-                    await fetch(
-                      `https://travelsync-backend-zcoj.onrender.com/api/chat/unpin/${deleteMenu.messageId}`,
-                      {
-                        method: "PUT",
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                        },
+                  const endpoint = selectedMsg?.isPinned ? "unpin" : "pin";
+                  await fetch(
+                    `https://travelsync-backend-zcoj.onrender.com/api/chat/${endpoint}/${deleteMenu.messageId}`,
+                    {
+                      method: "PUT",
+                      headers: {
+                        Authorization: `Bearer ${token}`,
                       },
-                    );
-                    setPinnedMessage(null);
-
-                    setMessages((prev) =>
-                      prev.map((m) => ({
-                        ...m,
-                        isPinned: false,
-                      })),
-                    );
-                  } else {
-                    await fetch(
-                      `https://travelsync-backend-zcoj.onrender.com/api/chat/pin/${deleteMenu.messageId}`,
-                      {
-                        method: "PUT",
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                        },
-                      },
-                    );
-                    setPinnedMessage(selectedMsg);
-                    setMessages((prev) =>
-                      prev.map((m) => ({
-                        ...m,
-                        isPinned: m._id === selectedMsg?._id,
-                      })),
-                    );
-                  }
-                  setDeleteMenu({
-                    visible: false,
-                    messageId: "",
-                  });
+                    },
+                  );
+                  setPinnedMessage(selectedMsg?.isPinned ? null : selectedMsg);
+                  setMessages((prev) =>
+                    prev.map((m) => ({
+                      ...m,
+                      isPinned:
+                        m._id === selectedMsg?._id ? !selectedMsg?.isPinned : false,
+                    })),
+                  );
+                  setDeleteMenu({ visible: false, messageId: "" });
                 } catch (err) {
                   console.log(err);
                 }
@@ -702,47 +648,38 @@ const AdminChatUser = () => {
             >
               {selectedMsg?.isPinned ? (
                 <>
-                  <PinOff size={18} />
+                  <PinOff size={16} />
                   <span>Unpin</span>
                 </>
               ) : (
                 <>
-                  <Pin size={18} />
+                  <Pin size={16} />
                   <span>Pin</span>
                 </>
               )}
             </button>
             <button
-              className="w-full text-left p-2 hover:bg-gray-100"
+              className="w-full text-left p-2 hover:bg-gray-100 rounded-lg text-sm"
               onClick={() => {
                 deleteMessage(deleteMenu.messageId, "me");
-                setDeleteMenu({
-                  visible: false,
-                  messageId: "",
-                });
+                setDeleteMenu({ visible: false, messageId: "" });
               }}
             >
               Delete from Me
             </button>
             <button
-              className="w-full text-left p-2 text-red-600 hover:bg-grey-100"
+              className="w-full text-left p-2 text-red-600 hover:bg-gray-100 rounded-lg text-sm"
               onClick={() => {
                 deleteMessage(deleteMenu.messageId, "everyone");
-                setDeleteMenu({
-                  visible: false,
-                  messageId: "",
-                });
+                setDeleteMenu({ visible: false, messageId: "" });
               }}
             >
               Delete from Everyone
             </button>
             <button
-              className="w-full text-left p-2 hover:bg-gray-100"
+              className="w-full text-left p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-500"
               onClick={() => {
-                setDeleteMenu({
-                  visible: false,
-                  messageId: "",
-                });
+                setDeleteMenu({ visible: false, messageId: "" });
               }}
             >
               Cancel
