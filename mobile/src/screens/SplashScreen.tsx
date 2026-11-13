@@ -15,13 +15,19 @@ const SplashScreen = ({ navigation }: any) => {
       if (auth?.token) {
         try {
           const fcmToken = await messaging().getToken();
-          await API.post(apis.saveFCMToken, {
-            fcmToken,
-          });
-          await connectSocket(auth.token);
-        } catch (error) {
-          console.log('Offline mode');
+          if (fcmToken) {
+            await API.post(apis.saveFCMToken, { fcmToken });
+          }
+        } catch (fcmError) {
+          console.log('FCM Error in Splash:', fcmError);
         }
+
+        try {
+          await connectSocket(auth.token);
+        } catch (socketError) {
+          console.log('Socket connect error in Splash:', socketError);
+        }
+
         navigation.replace('MainTabs');
       } else {
         navigation.replace('Login');
