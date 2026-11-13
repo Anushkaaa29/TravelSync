@@ -19,14 +19,8 @@ connectDB();
 const app = express();
 
 // server connection socket
-const server=http.createServer(app);
-const onlineUsers=new Map();
-const io=new Server(server,{
-  cors:{
-    origin:"*",
-    methods:["GET","POST"],
-  },
-});
+const server = http.createServer(app);
+const io = initSocket(server);
 app.set("io", io);
 
 registerSocketEvents(io); 
