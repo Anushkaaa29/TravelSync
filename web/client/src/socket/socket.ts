@@ -1,5 +1,6 @@
+
 import { io, Socket } from "socket.io-client";
-const SOCKET_URL = "https://travelsync-backend-zcoj.onrender.com";
+
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
   import.meta.env.VITE_BACKEND_URL ||
@@ -12,6 +13,7 @@ export const createSocket = (token: string): Socket => {
     if (socket.connected) {
       return socket;
     }
+
     socket.auth = { token };
     socket.connect();
     return socket;
@@ -19,9 +21,7 @@ export const createSocket = (token: string): Socket => {
 
   socket = io(SOCKET_URL, {
     transports: ["websocket", "polling"],
-    auth: {
-      token,
-    },
+    auth: { token },
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
@@ -41,6 +41,7 @@ export const createSocket = (token: string): Socket => {
 
   return socket;
 };
+
 export const getSocket = (): Socket | null => socket;
 
 export const disconnectSocket = () => {
@@ -50,4 +51,3 @@ export const disconnectSocket = () => {
     socket = null;
   }
 };
-
