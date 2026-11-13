@@ -23,25 +23,64 @@ const AdminChatUser = () => {
       console.log("NO TOKEN FOUND");
       return;
     }
-    socketRef.current = createSocket(token);
-    socketRef.current.on("connect", () => {
-      console.log("SOCKET CONNECTED");
-      socketRef.current.emit("get-active-users");
-    });
-    socketRef.current.on("active-users", (onlineUsers: any) => {
-      console.log("ACTIVE USERS");
-      console.log(onlineUsers);
+    const socket = createSocket(token);
+    socketRef.current = socket;
+
+    const requestActiveUsers = () => {
+      console.log("SOCKET CONNECTED / EMITTING get-active-users");
+      socket.emit("get-active-users");
+    };
+
+    const handleActiveUsers = (onlineUsers: any) => {
+      console.log("ACTIVE USERS RECEIVED:", onlineUsers);
       setActiveUsers((prev) => {
         const userMap = new Map();
-        prev.forEach((u) => userMap.set(u.userId, { ...u, isOnline: false }));
-        onlineUsers.forEach((u: any) =>
-          userMap.set(u.userId, { ...u, isOnline: true }),
-        );
+        // 1. Mark existing known users as offline first
+        prev.forEach((u) => {
+          if (u.userId) {
+            userMap.set(u.userId, { ...u, isOnline: false });
+          }
+        });
+
+        // 2. Mark users present in onlineUsers as online and merge details (name, email, role)
+        if (Array.isArray(onlineUsers)) {
+          onlineUsers.forEach((u: any) => {
+            if (u.userId) {
+              const existing = userMap.get(u.userId) || {};
+              userMap.set(u.userId, {
+                ...existing,
+                ...u,
+                isOnline: true,
+              });
+            }
+          });
+        }
+
         return Array.from(userMap.values());
       });
-    });
 
-    socketRef.current.on("message-sent", (msg: any) => {
+      // Keep currently selected user's online state updated
+      setSelectedUser((prevSelected: any) => {
+        if (!prevSelected) return null;
+        const matchingOnlineUser = Array.isArray(onlineUsers)
+          ? onlineUsers.find((u: any) => u.userId === prevSelected.userId)
+          : null;
+        return {
+          ...prevSelected,
+          ...(matchingOnlineUser || {}),
+          isOnline: Boolean(matchingOnlineUser),
+        };
+      });
+    };
+
+    if (socket.connected) {
+      requestActiveUsers();
+    }
+
+    socket.on("connect", requestActiveUsers);
+    socket.on("active-users", handleActiveUsers);
+
+    socket.on("message-sent", (msg: any) => {
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) {
           return prev;
@@ -50,7 +89,7 @@ const AdminChatUser = () => {
       });
     });
 
-    socketRef.current.on("receive-message", (msg: any) => {
+    socket.on("receive-message", (msg: any) => {
       setMessages((prev) => {
         if (prev.some((m) => m._id === msg._id)) {
           return prev;
@@ -59,11 +98,11 @@ const AdminChatUser = () => {
       });
     });
 
-    socketRef.current.on("message-deleted", ({ messageId }: any) => {
+    socket.on("message-deleted", ({ messageId }: any) => {
       setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
     });
 
-    socketRef.current.on("message-edited", (updatedMessage: any) => {
+    socket.on("message-edited", (updatedMessage: any) => {
       setMessages((prev) =>
         prev.map((msg) =>
           msg._id === updatedMessage._id ? updatedMessage : msg,
@@ -71,7 +110,7 @@ const AdminChatUser = () => {
       );
     });
 
-    socketRef.current.on("message-pinned", (updatedMessage: any) => {
+    socket.on("message-pinned", (updatedMessage: any) => {
       setMessages((prev) =>
         prev.map((msg) =>
           msg._id === updatedMessage._id
@@ -90,7 +129,7 @@ const AdminChatUser = () => {
       setPinnedMessage(updatedMessage);
     });
 
-    socketRef.current.on("message-unpinned", (updatedMessage: any) => {
+    socket.on("message-unpinned", (updatedMessage: any) => {
       setMessages((prev) =>
         prev.map((msg) =>
           msg._id === updatedMessage._id
@@ -106,13 +145,14 @@ const AdminChatUser = () => {
     });
 
     return () => {
-      socketRef.current.off("message-sent");
-      socketRef.current.off("receive-message");
-      socketRef.current.off("message-deleted");
-      socketRef.current.off("message-edited");
-      socketRef.current.off("message-pinned");
-      socketRef.current.off("message-unpinned");
-      socketRef.current.disconnect();
+      socket.off("connect", requestActiveUsers);
+      socket.off("active-users", handleActiveUsers);
+      socket.off("message-sent");
+      socket.off("receive-message");
+      socket.off("message-deleted");
+      socket.off("message-edited");
+      socket.off("message-pinned");
+      socket.off("message-unpinned");
     };
   }, []);
 
@@ -202,6 +242,7 @@ const AdminChatUser = () => {
     loadUsers();
   }, []);
   const loadUsers = async () => {
+<<<<<<< HEAD
     const token = localStorage.getItem("token");
     const response = await fetch(`https://travelsync-backend-zcoj.onrender.com/api/chat/users`, {
       headers: {
@@ -217,6 +258,42 @@ const AdminChatUser = () => {
       prev.forEach((u: any) => userMap.set(u.userId, { ...u }));
       return Array.from(userMap.values());
     });
+=======
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://travelsync-backend-zcoj.onrender.com/api/chat/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setActiveUsers((prev: any[]) => {
+        const prevMap = new Map(prev.map((u) => [u.userId, u]));
+        const userMap = new Map();
+
+        if (Array.isArray(data)) {
+          data.forEach((u: any) => {
+            const prevUser = prevMap.get(u.userId);
+            userMap.set(u.userId, {
+              ...u,
+              isOnline: prevUser ? prevUser.isOnline : false,
+            });
+          });
+        }
+
+        // Preserve any online users from prev that don't have message history yet
+        prev.forEach((u: any) => {
+          if (u.userId && !userMap.has(u.userId)) {
+            userMap.set(u.userId, u);
+          }
+        });
+
+        return Array.from(userMap.values());
+      });
+    } catch (error) {
+      console.error("Failed to load users:", error);
+    }
+>>>>>>> ccbe19e (Fix online users tracking in chat)
   };
 
   const deleteMessage = async (
@@ -287,48 +364,73 @@ const AdminChatUser = () => {
     });
   };
 
+  const sortedUsers = [...activeUsers].sort((a, b) => {
+    if (Boolean(a.isOnline) === Boolean(b.isOnline)) {
+      return (a.name || a.email || "").localeCompare(b.name || b.email || "");
+    }
+    return a.isOnline ? -1 : 1;
+  });
+
   return (
     <div className="h-[calc(100vh-80px)] bg-gray-100 p-6">
       <div className="h-full rounded-2xl overflow-hidden shadow-lg bg-white flex">
-        <div className="w-80 bg-gray-50 p-5">
-          <h2 className="text-2xl font-bold mb-6">Conversations</h2>
-          <div className="space-y-3 overflow-y-auto h-full">
-            {activeUsers.length === 0 ? (
-              <div>No Active Users</div>
+        <div className="w-80 bg-gray-50 p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Conversations</h2>
+            <span className="text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+              {activeUsers.filter((u) => u.isOnline).length} Online
+            </span>
+          </div>
+          <div className="space-y-3 overflow-y-auto h-full pr-1">
+            {sortedUsers.length === 0 ? (
+              <div className="text-sm text-gray-500 text-center py-6">No Users Found</div>
             ) : (
-              activeUsers.map((user) => (
+              sortedUsers.map((user) => (
                 <div
                   key={user.userId}
                   onClick={() => {
-                    console.log("USER CLICKED");
-                    console.log(user);
+                    console.log("USER CLICKED", user);
                     setSelectedUser(user);
                     loadMessages(user.userId);
                   }}
-                  className={`rounded-xl p-4 cursor-pointer transition ${
+                  className={`rounded-xl p-3 cursor-pointer transition ${
                     selectedUser?.userId === user.userId
-                      ? "bg-blue-100 border border-blue-500"
-                      : "bg-white hover:bg-gray-100"
+                      ? "bg-blue-100 border border-blue-500 shadow-sm"
+                      : "bg-white hover:bg-gray-100 border border-gray-100"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                      U
+                    <div className="relative flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                        {(user.name || user.email || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <span
+                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                          user.isOnline ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                      />
                     </div>
 
-                    <div>
-                      <h3 className="font-semibold">
-                        {user.name || user.userId}
-                      </h3>
-                      <p
-                        className={
-                          user.isOnline
-                            ? "text-green-600 text-sm"
-                            : "text-gray-400 text-sm"
-                        }
-                      >
-                        {user.isOnline ? "Online" : "Offline"}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <h3 className="font-semibold text-gray-900 truncate text-sm">
+                          {user.name || "User"}
+                        </h3>
+                        <span
+                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${
+                            user.isOnline
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {user.isOnline ? "Online" : "Offline"}
+                        </span>
+                      </div>
+                      {user.email && (
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {user.email}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -339,15 +441,39 @@ const AdminChatUser = () => {
         <div className="flex-1 flex flex-col">
           <div className="border-b p-5">
             {selectedUser ? (
-              <div>
-                <h2 className="font-bold text-lg">Chat with</h2>
-
-                <p className="text-blue-600">
-                  {selectedUser.name || selectedUser.userId}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                    {(selectedUser.name || selectedUser.email || "U").charAt(0).toUpperCase()}
+                  </div>
+                  <span
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                      selectedUser.isOnline ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-bold text-lg text-gray-900">
+                      {selectedUser.name || "User"}
+                    </h2>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        selectedUser.isOnline
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {selectedUser.isOnline ? "Online" : "Offline"}
+                    </span>
+                  </div>
+                  {selectedUser.email && (
+                    <p className="text-xs text-gray-500">{selectedUser.email}</p>
+                  )}
+                </div>
               </div>
             ) : (
-              <h2>Select User</h2>
+              <h2 className="text-gray-500 font-medium">Select User to Chat</h2>
             )}
           </div>
           {pinnedMessage && (
