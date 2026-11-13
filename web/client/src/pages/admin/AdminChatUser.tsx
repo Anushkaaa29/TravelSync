@@ -242,12 +242,54 @@ const AdminChatUser = () => {
     loadUsers();
   }, []);
   const loadUsers = async () => {
+  try {
     const token = localStorage.getItem("token");
-    const response = await fetch(`https://travelsync-backend-zcoj.onrender.com/api/chat/users`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
+
+    const response = await fetch(
+      "https://travelsync-backend-zcoj.onrender.com/api/chat/users",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch users");
+    }
+
+    const data = await response.json();
+
+    setActiveUsers((prev: any[]) => {
+      const prevMap = new Map(
+        prev.map((u) => [u.userId, u]),
+      );
+
+      const userMap = new Map();
+
+      if (Array.isArray(data)) {
+        data.forEach((u: any) => {
+          const prevUser: any = prevMap.get(u.userId);
+
+          userMap.set(u.userId, {
+            ...u,
+            isOnline: prevUser?.isOnline || false,
+          });
+        });
+      }
+
+      prev.forEach((u: any) => {
+        if (u.userId && !userMap.has(u.userId)) {
+          userMap.set(u.userId, u);
+        }
+      });
+
+      return Array.from(userMap.values());
     });
+  } catch (error) {
+    console.error("Failed to load users:", error);
+  }
+};
     const data = await response.json();
     setActiveUsers((prev: any[]) => {
       const userMap = new Map();
